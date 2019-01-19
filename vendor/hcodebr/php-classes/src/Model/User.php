@@ -11,22 +11,18 @@ class User extends Model {
 
 	const SESSION = "User";
 	const SECRET = "HcodePhp7_secret";
+	const ERROR = "UserError";
+	const ERROR_REGISTER = "UserErrorRegister";
 
 
 
-	public static function getFromSession()
+	public static function getFromSession()//Copido do projeto original Hcode
 	{
-
 		$user = new User();
-
-		if(isset($_SESSION[User::SESSION]) && (int)$_SESSION[User::SESSION] > 0){
-
-				$user->setData($_SESSION[User::SESSION]);
-
+		if (isset($_SESSION[User::SESSION]) && (int)$_SESSION[User::SESSION]['iduser'] > 0) {
+			$user->setData($_SESSION[User::SESSION]);
 		}
-
 		return $user;
-
 	}
 
 
@@ -34,27 +30,24 @@ class User extends Model {
 
 	public static function checkLogin($inadmin = true)
 	{
-
-			if (!isset($_SESSION[User::SESSION]) || !$_SESSION[User::SESSION] || !(int)$_SESSION[User::SESSION]["iduser"] > 0)
-			{
-
-					// não está logado
+		if (
+			!isset($_SESSION[User::SESSION])
+			||
+			!$_SESSION[User::SESSION]
+			||
+			!(int)$_SESSION[User::SESSION]["iduser"] > 0
+		) {
+			//Não está logado
+			return false;
+		} else {
+			if ($inadmin === true && (bool)$_SESSION[User::SESSION]['inadmin'] === true) {
+				return true;
+			} else if ($inadmin === false) {
+				return true;
+			} else {
 				return false;
-
-			} else {
-
-					if ($inadmin === true && (bool)$_SESSION[User::SESSION]["inadmin"] === true) {
-						return true;
-					
-
-			} else if ($inadmin === false){
-					return true;
-			} else {
-					return false;
 			}
-
 		}
-
 	}
 
 
@@ -102,11 +95,15 @@ class User extends Model {
 
 	public static function verifyLogin($inadmin = true)
 	{
-		if(User::checkLogin($inadmin)){
-			header ("Location: /admin/login");
+		if (!User::checkLogin($inadmin)) {
+
+			if ($inadmin) {
+				header("Location: /admin/login");
+			} else {
+				header("Location: /login");
+			}
 			exit;
 		}
-
 	}
 
 
@@ -140,7 +137,7 @@ class User extends Model {
 		$results = $sql->select("CALL sp_users_save(:desperson, :deslogin, :despassword, :desemail, :nrphone, :inadmin)", array(
 			":desperson"=>$this->getdesperson(),
 			":deslogin"=>$this->getdeslogin(),
-			":despassword"=>$this->getdespassword(),
+			":despassword"=>User::getPasswordHash($this->getdespassword()),
 			":desemail"=>$this->getdesemail(),
 			":nrphone"=>$this->getnrphone(),
 			":inadmin"=>$this->getinadmin()
@@ -151,15 +148,15 @@ class User extends Model {
 	}
 
 
-	public function get($iduser)
+	public function get($iduser)//copiado original hcode
 	{
 		$sql = new Sql();
-
 		$results = $sql->select("SELECT * FROM tb_users a INNER JOIN tb_persons b USING(idperson) WHERE a.iduser = :iduser", array(
 			":iduser"=>$iduser
 		));
-
-		$this->setData($results[0]);
+		$data = $results[0];
+		$data['desperson'] = utf8_encode($data['desperson']);
+		$this->setData($data);
 	}
 
 
@@ -173,7 +170,7 @@ class User extends Model {
 			":iduser"=>$this->getiduser(),
 			":desperson"=>$this->getdesperson(),
 			":deslogin"=>$this->getdeslogin(),
-			":despassword"=>$this->getdespassword(),
+			":despassword"=>User::getPasswordHash($this->getdespassword()),
 			":desemail"=>$this->getdesemail(),
 			":nrphone"=>$this->getnrphone(),
 			":inadmin"=>$this->getinadmin()
@@ -297,6 +294,55 @@ class User extends Model {
 		}
 
 	}
+
+
+	public static function setError($msg)
+	{
+
+		$_SESSION[User::ERROR] = $msg;
+
+	}
+
+
+	public static function getError()
+	{
+
+		$msg = (isset($_SESSION[User::ERROR]) && $_SESSION[User::ERROR]) ? $_SESSION[User::ERROR] : '';
+
+		User::clearError();
+
+		return $msg;
+
+	}
+
+
+	public static function clearError(){
+
+		$_SESSION[User::ERROR] = null;
+	}
+
+
+
+	public static function setErrorRegister($msg)
+	{
+
+		$_SESSION[User::ERROR_REGISTER] = $msg;
+
+	}
+
+
+
+	public static function getPasswordHash($password)
+	{
+		return password_hash($password, PASSWORD_DEFAULT, [
+			'cost'=>12
+		]);
+	}
+
+
+
+
+
 
 
 }
