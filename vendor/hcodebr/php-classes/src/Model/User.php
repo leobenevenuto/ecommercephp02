@@ -13,16 +13,23 @@ class User extends Model {
 	const SECRET = "HcodePhp7_secret";
 	const ERROR = "UserError";
 	const ERROR_REGISTER = "UserErrorRegister";
+	CONST SUCCESS = "UserSUCCESS";
 
 
 
-	public static function getFromSession()//Copido do projeto original Hcode
+	public static function getFromSession() // Copiado do projeto original
 	{
+
 		$user = new User();
+
 		if (isset($_SESSION[User::SESSION]) && (int)$_SESSION[User::SESSION]['iduser'] > 0) {
+
 			$user->setData($_SESSION[User::SESSION]);
+
 		}
+
 		return $user;
+
 	}
 
 
@@ -54,27 +61,28 @@ class User extends Model {
 
 
 
-	public static function login($login, $password){
+	public static function login($login, $password) // Copiado do original
+	{
 
 		$sql = new Sql();
 
-		$results = $sql->select("SELECT * FROM tb_users WHERE deslogin = :LOGIN", array(
+		$results = $sql->select("SELECT * FROM tb_users a INNER JOIN tb_persons b ON a.idperson = b.idperson WHERE a.deslogin = :LOGIN", array(
 			":LOGIN"=>$login
-		));
+		)); 
 
-
-		if(count($results) === 0){
-
+		if (count($results) === 0)
+		{
 			throw new \Exception("Usuário inexistente ou senha inválida.");
 		}
 
 		$data = $results[0];
 
-
 		if (password_verify($password, $data["despassword"]) === true)
 		{
 
 			$user = new User();
+
+			$data['desperson'] = utf8_encode($data['desperson']);
 
 			$user->setData($data);
 
@@ -82,9 +90,7 @@ class User extends Model {
 
 			return $user;
 
-		
 		} else {
-
 			throw new \Exception("Usuário inexistente ou senha inválida.");
 		}
 
@@ -321,6 +327,33 @@ class User extends Model {
 		$_SESSION[User::ERROR] = null;
 	}
 
+
+
+	public static function setSuccess($msg)
+	{
+
+		$_SESSION[User::SUCCESS] = $msg;
+
+	}
+
+
+	public static function getSuccess()
+	{
+
+		$msg = (isset($_SESSION[User::SUCCESS]) && $_SESSION[User::SUCCESS]) ? $_SESSION[User::SUCCESS] : '';
+
+		User::clearSuccess();
+
+		return $msg;
+
+	}
+
+
+	public static function clearSuccess(){
+
+		$_SESSION[User::SUCCESS] = null;
+	
+	}
 
 
 	public static function setErrorRegister($msg)
